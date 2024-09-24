@@ -175,7 +175,7 @@ You can easily deploy this API to [Fly.io](https://fly.io/) for global availabil
 ```bash
 curl -X POST \
   -F "file=@/path/to/your/input_file.mp4" \
-  "https://your-app-name.fly.dev/convert" \
+  "https://<your-app-name>.fly.dev/" \
   --output compressed_audio.ogg
 ```
 
