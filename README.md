@@ -9,6 +9,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running with Docker](#running-with-docker)
+  - [Deploying to Fly.io](#deploying-to-flyio)
 - [API Usage](#api-usage)
   - [Endpoint](#endpoint)
   - [Request](#request)
@@ -46,14 +47,14 @@ Many AI transcription APIs impose maximum file size limits, making it challengin
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/audiovideo-compressor-api.git
-   cd audiovideo-compressor-api
+   git clone https://github.com/vfssantos/ffmpeg-deno-microservice.git
+   cd ffmpeg-deno-microservice
    ```
 
 2. **Build the Docker Image**
 
    ```bash
-   docker build -t audiovideo-compressor-api .
+   docker build -t ffmpeg-deno-microservice .
    ```
 
 ### Running with Docker
@@ -63,12 +64,12 @@ Run the Docker container with appropriate resource allocations and volume mounts
 ```bash
 docker run -d \
   -p 8000:8000 \
-  --name audiovideo-compressor-api \
+  --name ffmpeg-deno-microservice \
   --cpus="2.0" \
   --memory="4g" \
   -v /host/uploads:/app/uploads \
   -v /host/outputs:/app/outputs \
-  audiovideo-compressor-api
+  ffmpeg-deno-microservice
 ```
 
 - `-d`: Runs the container in detached mode.
@@ -78,12 +79,112 @@ docker run -d \
 - `-v /host/uploads:/app/uploads`: Mounts the host's `uploads` directory to the container.
 - `-v /host/outputs:/app/outputs`: Mounts the host's `outputs` directory to the container.
 
+
+## Deploying to Fly.io
+
+You can easily deploy this API to [Fly.io](https://fly.io/) for global availability.
+
+### Steps to Deploy
+
+1. **Install Flyctl**
+
+   If you haven't already, install the Fly CLI:
+
+   ```bash
+   curl -L https://fly.io/install.sh | sh
+   ```
+
+   Or use Homebrew (macOS):
+
+   ```bash
+   brew install superfly/tap/flyctl
+   ```
+
+2. **Authenticate with Fly.io**
+
+   Log in or sign up:
+
+   ```bash
+   flyctl auth signup
+   ```
+
+3. **Initialize the Fly App**
+
+   Navigate to your project directory and run:
+
+   ```bash
+   flyctl launch
+   ```
+
+   - **App Name**: Provide a unique name or accept the default.
+   - **Select Region**: Choose the closest region to your users.
+   - **Dockerfile Detected**: The CLI should detect the `Dockerfile`.
+   - **Deploy Now**: Choose **No** to make adjustments before deploying.
+
+4. **Configure `fly.toml`**
+
+   The `flyctl launch` command generates a `fly.toml` file. You can customize settings like environment variables, resources, and network configurations.
+
+5. **Set Resource Allocation**
+
+   Adjust CPU and memory if needed:
+
+   ```bash
+   flyctl scale vm shared-cpu-2x --memory 4096
+   ```
+
+   - `shared-cpu-2x`: Allocates 2 shared CPUs.
+   - `--memory 4096`: Allocates 4 GB of RAM. 
+
+6. **Deploy the App**
+
+   Run:
+
+   ```bash
+   flyctl deploy
+   ```
+
+   This command builds the Docker image and deploys it to Fly.io.
+
+7. **Monitor Deployment**
+
+   Check the status:
+
+   ```bash
+   flyctl status
+   ```
+
+   View logs:
+
+   ```bash
+   flyctl logs
+   ```
+
+8. **Access the API**
+
+   After deployment, your app will be accessible at:
+
+   ```
+   https://your-app-name.fly.dev
+   ```
+
+   Replace `your-app-name` with the name you chose during `flyctl launch`.
+
+### Example Request
+
+```bash
+curl -X POST \
+  -F "file=@/path/to/your/input_file.mp4" \
+  "https://<your-app-name>.fly.dev/" \
+  --output compressed_audio.ogg
+```
+
 ## API Usage
 
 ### Endpoint
 
 ```
-POST /convert
+POST /
 ```
 
 ### Request
@@ -109,7 +210,7 @@ Compress a video file and download the resulting audio:
 ```bash
 curl -X POST \
   -F "file=@/path/to/your/input_file.mp4" \
-  "http://localhost:8000/convert" \
+  "http://localhost:8000/" \
   --output processed_audio.ogg
 ```
 
