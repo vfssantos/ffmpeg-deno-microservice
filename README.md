@@ -1,5 +1,7 @@
 # Audio/Video Compressor API
 
+Simple API to Compress Large Audio/Video Files for AI Transcriptions
+
 ## Table of Contents
 
 - [Introduction](#introduction)
