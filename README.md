@@ -27,7 +27,6 @@
 
 - **Simple RESTful API**: Easy-to-use endpoints for file conversion.
 - **Highly Compressed Output**: Converts files to OGG audio format using the Opus codec, achieving small file sizes suitable for various applications.
-- **Secure and Efficient**: Runs as a non-root user within Docker for enhanced security.
 - **Scalable**: Designed to handle multiple requests concurrently with optimized resource management.
 - **Open Source**: Available for community contributions and improvements.
 
