@@ -2,6 +2,14 @@
 
 Simple API to Compress Large Audio/Video Files for AI Transcriptions
 
+Why?
+
+AI transcription services often have strict file size limits, making it tough to transcribe lengthy recordings. Splitting files into chunks can lead to context loss.
+
+Solution:
+
+This API compresses entire files into small, high-quality audio without splitting, so you can upload them to any AI transcription service and maintain full context.
+
 ## Table of Contents
 
 - [Introduction](#introduction)
