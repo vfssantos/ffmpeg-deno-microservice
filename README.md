@@ -1,9 +1,5 @@
 # Audio/Video Compressor API
 
-![License](https://img.shields.io/github/license/yourusername/audiovideo-compressor-api)
-![Docker](https://img.shields.io/docker/v/yourusername/audiovideo-compressor-api)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/yourusername/audiovideo-compressor-api/CI)
-
 ## Table of Contents
 
 - [Introduction](#introduction)
