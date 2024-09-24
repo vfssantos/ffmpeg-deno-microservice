@@ -1,110 +1,135 @@
 // server.ts
-import { MultipartReader } from "https://deno.land/std@0.203.0/mime/multipart.ts";
-
-const PORT = 8000;
+const PORT = Deno.env.get("PORT") || 8000;
 
 const handler = async (request: Request): Promise<Response> => {
-  if (
-    request.method === "POST" &&
-    request.headers.get("content-type")?.includes("multipart/form-data")
-  ) {
-    let inputPath: string | undefined;
-    let outputPath: string | undefined;
+  console.log("Received request");
+  const formData: Record<string, any> = {};
 
-    try {
-      const boundary = request.headers
-        .get("content-type")!
-        .split("boundary=")[1];
-      const reader = request.body?.getReader();
-      if (!reader) {
-        return new Response("No body found", { status: 400 });
-      }
+  let inputPath: string | null = null;
+  let outputPath: string | null = null;
 
-      const multipart = new MultipartReader(request.body!, boundary);
-      const form = await multipart.readForm();
 
-      const file = form.file("file");
-      if (!file) {
-        return new Response("No file uploaded", { status: 400 });
-      }
+  try {
+    const headers = Object.fromEntries(request.headers.entries());
+    const contentType = headers?.["content-type"] || headers?.["Content-Type"] || "";
 
-      // Generate unique filenames to prevent conflicts
-      const uniqueId = crypto.randomUUID();
-      inputPath = `./uploads/${uniqueId}_${file.filename}`;
-      outputPath = `./outputs/output_${uniqueId}_${file.filename}`;
+    console.log("Content-Type:", contentType);
 
-      // Save the uploaded file
-      await Deno.mkdir("./uploads", { recursive: true });
-      await Deno.writeFile(inputPath, file.content);
-
-      // Extract additional FFmpeg parameters from form data
-      const ffmpegParams: string[] = [];
-
+    if (contentType.includes("multipart/form-data")) {
+      console.log("Parsing multipart form data");
+      const form = await request.formData();
       for (const [key, value] of form.entries()) {
-        if (key.startsWith("ffmpeg_")) {
-          const param = value.toString().trim();
-          // Optional: Validate the parameter here
-          ffmpegParams.push(param);
+        if (value instanceof File) {
+          formData[key] = value;
+        } else {
+          try {
+            formData[key] = JSON.parse(value);
+          } catch {
+            formData[key] = value;
+          }
         }
       }
+    } else {
+      throw new Error("Unsupported content type");
+    }
 
-      // Default FFmpeg parameters if none provided
-      if (ffmpegParams.length === 0) {
-        ffmpegParams.push("-vf", "scale=320:240");
-      }
+    // Extract the file from formData
+    const file = formData.file;
+    if (!(file instanceof File)) {
+      throw new Error("No file or invalid file provided");
+    }
 
-      // Construct the FFmpeg command arguments
-      const args = ["-i", inputPath, ...ffmpegParams, outputPath];
+    console.log("File received:", file.name);
 
-      // Initialize the Deno.Command
-      const command = new Deno.Command("ffmpeg", {
-        args,
-        stdout: "piped",
-        stderr: "piped",
+    // Generate unique filenames to prevent conflicts
+    const uniqueId = crypto.randomUUID();
+    const inputFileName = `${uniqueId}_${file.name}`;
+    inputPath = `./uploads/${inputFileName}`;
+    const outputFileName = `audio_${uniqueId}.ogg`;
+    outputPath = `./outputs/${outputFileName}`;
+
+    console.log("Input path:", inputPath);
+    console.log("Output path:", outputPath);
+
+    // Ensure upload and output directories exist
+    await Deno.mkdir("./uploads", { recursive: true });
+    await Deno.mkdir("./outputs", { recursive: true });
+
+    // Save the uploaded file
+    const fileContent = await file.arrayBuffer();
+    await Deno.writeFile(inputPath, new Uint8Array(fileContent));
+    console.log("File saved to uploads directory");
+
+    // Define the FFmpeg parameters to compress to audio format
+    const ffmpegArgs = [
+      "-i",
+      inputPath,            // Input file
+      "-vn",                // Disable video
+      "-map_metadata",
+      "-1",                 // Remove metadata
+      "-ac",
+      "1",                  // Set number of audio channels to 1
+      "-c:a",
+      "libopus",            // Use Opus codec
+      "-b:a",
+      "12k",                // Audio bitrate
+      "-application",
+      "lowdelay",               // Set application type to VoIP
+      "-preset",
+      "veryfast",
+      outputPath            // Output file
+    ];
+
+    console.log("FFmpeg command:", ffmpegArgs.join(" "));
+
+    // Initialize the Deno.Command
+    const command = new Deno.Command("ffmpeg", {
+      args: ffmpegArgs,
+      stdout: "piped",
+      stderr: "piped",
+    });
+
+    // Execute the FFmpeg command and collect output
+    console.log("Executing FFmpeg command");
+    const subprocess = command.spawn();
+    const { code, stdout, stderr } = await subprocess.output();
+
+    if (code === 0) {
+      console.log("FFmpeg processing successful");
+      // Read the processed file
+      const processedFile = await Deno.readFile(outputPath);
+
+      // Respond with the processed file
+      return new Response(processedFile, {
+        headers: {
+          "Content-Type": "audio/ogg",
+          "Content-Disposition": `attachment; filename="${outputFileName}"`,
+        },
       });
-
-      // Execute the FFmpeg command and collect output
-      const subprocess = command.spawn();
-
-      const { code, stdout, stderr } = await subprocess.output();
-
-      if (code === 0) {
-        // Read the processed file
-        const processedFile = await Deno.readFile(outputPath);
-
-        // Respond with the processed file
-        return new Response(processedFile, {
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "Content-Disposition": `attachment; filename="processed_${file.filename}"`,
-          },
-        });
-      } else {
-        const errorString = new TextDecoder().decode(stderr);
-        return new Response(`FFmpeg processing failed:\n${errorString}`, {
-          status: 500,
-        });
+    } else {
+      const errorString = new TextDecoder().decode(stderr);
+      console.error("FFmpeg processing failed:", errorString);
+      throw new Error(`FFmpeg processing failed: ${errorString}`);
+    }
+  } catch (error) {
+    console.error("Error processing request:", error);
+    return new Response(`Error: ${error.message}`, { status: 500 });
+  } finally {
+    // Clean up temporary files
+    try {
+      if (inputPath) {
+        await Deno.remove(inputPath);
+        console.log("Cleaned up input file:", inputPath);
       }
-    } catch (error) {
-      console.error("Error processing request:", error);
-      return new Response(`Error: ${error.message}`, { status: 500 });
-    } finally {
-      // Clean up temporary files
-      try {
-        if (inputPath) {
-          await Deno.remove(inputPath);
-        }
-        if (outputPath) {
-          await Deno.remove(outputPath);
-        }
-      } catch (cleanupError) {
-        console.warn("Cleanup failed:", cleanupError);
+      if (outputPath) {
+        await Deno.remove(outputPath);
+        console.log("Cleaned up output file:", outputPath);
       }
+    } catch (cleanupError) {
+      console.warn("Cleanup failed:", cleanupError);
     }
   }
-
-  return new Response("Invalid Request", { status: 400 });
 };
 
 console.log(`Server is running on http://localhost:${PORT}`);
-await Deno.serve(handler, { port: PORT });
+Deno.serve({ port: PORT }, handler);

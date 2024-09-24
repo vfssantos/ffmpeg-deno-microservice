@@ -15,8 +15,13 @@ COPY . .
 # Create necessary directories with proper permissions
 RUN mkdir ./uploads ./outputs
 
+# Get the port from the environment variable
+ARG PORT
+
+ENV PORT=${PORT:-8000}
+
 # Expose the port your application will run on
-EXPOSE 8000
+EXPOSE ${PORT}
 
 # Set the command to run your application with limited permissions
-CMD ["run", "-A",  "audio-compressor.ts"]
+CMD ["run", "-A",  "main.ts"]
