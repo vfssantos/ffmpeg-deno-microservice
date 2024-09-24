@@ -164,7 +164,7 @@ You can easily deploy this API to [Fly.io](https://fly.io/) for global availabil
    After deployment, your app will be accessible at:
 
    ```
-   https://your-app-name.fly.dev
+   https://<your-app-name>.fly.dev
    ```
 
    Replace `your-app-name` with the name you chose during `flyctl launch`.
