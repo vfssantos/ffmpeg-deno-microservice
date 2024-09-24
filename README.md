@@ -46,14 +46,14 @@ Many AI transcription APIs impose maximum file size limits, making it challengin
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/audiovideo-compressor-api.git
-   cd audiovideo-compressor-api
+   git clone https://github.com/vfssantos/ffmpeg-deno-microservice.git
+   cd ffmpeg-deno-microservice
    ```
 
 2. **Build the Docker Image**
 
    ```bash
-   docker build -t audiovideo-compressor-api .
+   docker build -t ffmpeg-deno-microservice .
    ```
 
 ### Running with Docker
@@ -63,12 +63,12 @@ Run the Docker container with appropriate resource allocations and volume mounts
 ```bash
 docker run -d \
   -p 8000:8000 \
-  --name audiovideo-compressor-api \
+  --name ffmpeg-deno-microservice \
   --cpus="2.0" \
   --memory="4g" \
   -v /host/uploads:/app/uploads \
   -v /host/outputs:/app/outputs \
-  audiovideo-compressor-api
+  ffmpeg-deno-microservice
 ```
 
 - `-d`: Runs the container in detached mode.
@@ -83,7 +83,7 @@ docker run -d \
 ### Endpoint
 
 ```
-POST /convert
+POST /
 ```
 
 ### Request
@@ -109,7 +109,7 @@ Compress a video file and download the resulting audio:
 ```bash
 curl -X POST \
   -F "file=@/path/to/your/input_file.mp4" \
-  "http://localhost:8000/convert" \
+  "http://localhost:8000/" \
   --output processed_audio.ogg
 ```
 
